@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice Creator App</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1000px;margin:auto;padding:15px}
+input,textarea{width:100%;padding:8px;box-sizing:border-box}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:8px}
+button{padding:10px 15px;margin:5px;cursor:pointer}
+.total{font-size:20px;font-weight:bold;text-align:right}
+@media print {.noprint{display:none} body{max-width:none}}
+</style>
+</head>
+<body>
+
+<div class="noprint">
+<h1>Invoice Creator</h1>
+
+<label>Invoice Number</label>
+<input id="invoiceNo" value="">
+
+<label>Date</label>
+<input type="date" id="invoiceDate">
+
+<label>Bill To</label>
+<textarea id="billTo"></textarea>
+
+<table id="items">
+<thead>
+<tr>
+<th>Description</th>
+<th>Qty</th>
+<th>Rate</th>
+<th>Amount</th>
+<th>Remove</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<button onclick="addRow()">Add Item</button>
+
+<h2 class="total">Total: $<span id="total">0.00</span></h2>
+
+<button onclick="saveData()">Save</button>
+<button onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<script>
+function addRow(desc='',qty=1,rate=0){
+ const row=document.createElement('tr');
+ row.innerHTML=`
+ <td><input value="${desc}"></td>
+ <td><input type="number" value="${qty}" oninput="calc()"></td>
+ <td><input type="number" step="0.01" value="${rate}" oninput="calc()"></td>
+ <td class="amt">0.00</td>
+ <td><button onclick="this.parentNode.parentNode.remove();calc()">X</button></td>`;
+ document.querySelector('#items tbody').appendChild(row);
+ calc();
+}
+
+function calc(){
+ let total=0;
+ document.querySelectorAll('#items tbody tr').forEach(r=>{
+   let q=parseFloat(r.cells[1].querySelector('input').value)||0;
+   let rate=parseFloat(r.cells[2].querySelector('input').value)||0;
+   let amt=q*rate;
+   r.querySelector('.amt').innerText=amt.toFixed(2);
+   total+=amt;
+ });
+ document.getElementById('total').innerText=total.toFixed(2);
+}
+
+function saveData(){
+ const data={
+ invoiceNo:invoiceNo.value,
+ invoiceDate:invoiceDate.value,
+ billTo:billTo.value,
+ items:[]
+ };
+ document.querySelectorAll('#items tbody tr').forEach(r=>{
+   data.items.push({
+    desc:r.cells[0].querySelector('input').value,
+    qty:r.cells[1].querySelector('input').value,
+    rate:r.cells[2].querySelector('input').value
+   });
+ });
+ localStorage.setItem('invoiceApp',JSON.stringify(data));
+ alert('Saved successfully');
+}
+
+function loadData(){
+ const data=JSON.parse(localStorage.getItem('invoiceApp')||'null');
+ if(!data){ addRow(); return; }
+
+ invoiceNo.value=data.invoiceNo||'';
+ invoiceDate.value=data.invoiceDate||'';
+ billTo.value=data.billTo||'';
+
+ document.querySelector('#items tbody').innerHTML='';
+ (data.items||[]).forEach(i=>addRow(i.desc,i.qty,i.rate));
+ calc();
+}
+
+loadData();
+</script>
+
+</body>
+</html>
